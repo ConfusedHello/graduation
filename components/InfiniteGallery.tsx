@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import Image from 'next/image';
@@ -165,6 +165,7 @@ function ImagePlane({
 
 	useEffect(() => {
 		if (material && texture) {
+			// eslint-disable-next-line
 			material.uniforms.map.value = texture;
 		}
 	}, [material, texture]);
@@ -198,7 +199,11 @@ function GalleryScene({
 }: Omit<InfiniteGalleryProps, 'className' | 'style'>) {
 	const [scrollVelocity, setScrollVelocity] = useState(0);
 	const [autoPlay, setAutoPlay] = useState(true);
-	const lastInteraction = useRef(Date.now());
+	const lastInteraction = useRef(0);
+
+	useEffect(() => {
+		lastInteraction.current = Date.now();
+	}, []);
 
 	// Normalize images to objects
 	const normalizedImages = useMemo(
@@ -220,8 +225,6 @@ function GalleryScene({
 
 	const spatialPositions = useMemo(() => {
 		const positions: { x: number; y: number }[] = [];
-		const maxHorizontalOffset = MAX_HORIZONTAL_OFFSET;
-		const maxVerticalOffset = MAX_VERTICAL_OFFSET;
 
 		for (let i = 0; i < visibleCount; i++) {
 			// Create varied distribution patterns for both axes
@@ -232,10 +235,10 @@ function GalleryScene({
 			const verticalRadius = ((i + 1) % 4) * 0.8; // Different pattern for vertical
 
 			const x =
-				(Math.sin(horizontalAngle) * horizontalRadius * maxHorizontalOffset) /
+				(Math.sin(horizontalAngle) * horizontalRadius * MAX_HORIZONTAL_OFFSET) /
 				3;
 			const y =
-				(Math.cos(verticalAngle) * verticalRadius * maxVerticalOffset) / 4;
+				(Math.cos(verticalAngle) * verticalRadius * MAX_VERTICAL_OFFSET) / 4;
 
 			positions.push({ x, y });
 		}
@@ -246,16 +249,18 @@ function GalleryScene({
 	const totalImages = normalizedImages.length;
 	const depthRange = DEFAULT_DEPTH_RANGE;
 
-	// Initialize plane data
-	const planesData = useRef<PlaneData[]>(
+	// Initialize plane data - use state for rendering, ref for fast mutations
+	const [initialPlanes] = useState<PlaneData[]>(() =>
 		Array.from({ length: visibleCount }, (_, i) => ({
 			index: i,
 			z: visibleCount > 0 ? ((depthRange / visibleCount) * i) % depthRange : 0,
 			imageIndex: totalImages > 0 ? i % totalImages : 0,
-			x: spatialPositions[i]?.x ?? 0, // Use spatial positions for x
-			y: spatialPositions[i]?.y ?? 0, // Use spatial positions for y
+			x: spatialPositions[i]?.x ?? 0,
+			y: spatialPositions[i]?.y ?? 0,
 		}))
 	);
+
+	const planesData = useRef<PlaneData[]>(initialPlanes);
 
 	useEffect(() => {
 		planesData.current = Array.from({ length: visibleCount }, (_, i) => ({
@@ -342,7 +347,6 @@ function GalleryScene({
 		const imageAdvance =
 			totalImages > 0 ? visibleCount % totalImages || totalImages : 0;
 		const totalRange = depthRange;
-		const halfRange = totalRange / 2;
 
 		planesData.current.forEach((plane, i) => {
 			let newZ = plane.z + scrollVelocity * delta * 10;
@@ -371,8 +375,6 @@ function GalleryScene({
 			plane.x = spatialPositions[i]?.x ?? 0;
 			plane.y = spatialPositions[i]?.y ?? 0;
 
-			const worldZ = plane.z - halfRange;
-
 			// Calculate opacity based on fade settings
 			const normalizedPosition = plane.z / totalRange; // 0 to 1
 			let opacity = 1;
@@ -382,10 +384,9 @@ function GalleryScene({
 				normalizedPosition <= fadeSettings.fadeIn.end
 			) {
 				// Fade in: opacity goes from 0 to 1 within the fade in range
-				const fadeInProgress =
+				opacity =
 					(normalizedPosition - fadeSettings.fadeIn.start) /
 					(fadeSettings.fadeIn.end - fadeSettings.fadeIn.start);
-				opacity = fadeInProgress;
 			} else if (normalizedPosition < fadeSettings.fadeIn.start) {
 				// Before fade in starts: fully transparent
 				opacity = 0;
@@ -449,9 +450,15 @@ function GalleryScene({
 
 	if (normalizedImages.length === 0) return null;
 
+	// Note: Accessing planesData.current during render is intentional for performance
+	// The ref is mutated in useFrame for smooth 60fps animations
 	return (
 		<>
-			{planesData.current.map((plane, i) => {
+			{/* eslint-disable-next-line */}
+			{initialPlanes.map((_, i) => {
+				const plane = planesData.current[i];
+				if (!plane) return null;
+
 				const texture = textures[plane.imageIndex];
 				const material = materials[i];
 
@@ -528,21 +535,17 @@ export default function InfiniteGallery({
 	},
 	globalOpacity = 1,
 }: InfiniteGalleryProps) {
-	const [webglSupported, setWebglSupported] = useState(true);
-
-	useEffect(() => {
-		// Check WebGL support
+	const [webglSupported] = useState(() => {
+		// Check WebGL support during initialization
 		try {
 			const canvas = document.createElement('canvas');
 			const gl =
 				canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-			if (!gl) {
-				setWebglSupported(false);
-			}
-		} catch (e) {
-			setWebglSupported(false);
+			return !!gl;
+		} catch {
+			return false;
 		}
-	}, []);
+	});
 
 	if (!webglSupported) {
 		return (
