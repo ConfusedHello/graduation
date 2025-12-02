@@ -42,11 +42,11 @@ interface InfiniteGalleryProps {
 	speed?: number;
 	/** Spacing between images along Z in world units (default: 2.5) */
 	zSpacing?: number;
-	/** Number of visible planes (default: clamp to images.length, min 8) */
+	/** Number of visible planes (default: 13 unless overridden) */
 	visibleCount?: number;
 	/** Near/far distances for opacity/blur easing (default: { near: 0.5, far: 12 }) */
 	falloff?: { near: number; far: number };
-	/** Fade in/out settings with ranges based on depth range percentage (default: { fadeIn: { start: 0.05, end: 0.15 }, fadeOut: { start: 0.85, end: 0.95 } }) */
+	/** Fade in/out settings with ranges based on depth range percentage (default: { fadeIn: { start: 0.05, end: 0.15 }, fadeOut: { start: 0.75, end: 0.9 } }) */
 	fadeSettings?: FadeSettings;
 	/** Blur in/out settings with ranges based on depth range percentage (default: { blurIn: { start: 0.0, end: 0.1 }, blurOut: { start: 0.9, end: 1.0 }, maxBlur: 3.0 }) */
 	blurSettings?: BlurSettings;
@@ -78,24 +78,22 @@ const createClothMaterial = () => {
 			blurAmount: { value: 0.0 },
 			scrollForce: { value: 0.0 },
 			time: { value: 0.0 },
-			isHovered: { value: 0.0 },
 		},
 		vertexShader: `
       uniform float scrollForce;
       uniform float time;
-      uniform float isHovered;
       varying vec2 vUv;
       varying vec3 vNormal;
-      
+
       void main() {
         vUv = uv;
         vNormal = normal;
-        
+
         vec3 pos = position;
-        
+
         // Create smooth curving based on scroll force
         float curveIntensity = scrollForce * 0.3;
-        
+
         // Base curve across the plane based on distance from center
         float distanceFromCenter = length(pos.xy);
         float curve = distanceFromCenter * distanceFromCenter * curveIntensity;
@@ -105,23 +103,8 @@ const createClothMaterial = () => {
         float ripple2 = sin(pos.y * 2.5 + scrollForce * 2.0) * 0.015;
         float clothEffect = (ripple1 + ripple2) * abs(curveIntensity) * 2.0;
         
-        // Flag waving effect when hovered
-        float flagWave = 0.0;
-        if (isHovered > 0.5) {
-          // Create flag-like wave from left to right
-          float wavePhase = pos.x * 3.0 + time * 8.0;
-          float waveAmplitude = sin(wavePhase) * 0.1;
-          // Damping effect - stronger wave on the right side (free edge)
-          float dampening = smoothstep(-0.5, 0.5, pos.x);
-          flagWave = waveAmplitude * dampening;
-          
-          // Add secondary smaller waves for more realistic flag motion
-          float secondaryWave = sin(pos.x * 5.0 + time * 12.0) * 0.03 * dampening;
-          flagWave += secondaryWave;
-        }
-        
-        // Apply Z displacement for curving effect (inverted) with cloth ripples and flag wave
-        pos.z -= (curve + clothEffect + flagWave);
+        // Apply Z displacement for curving effect (inverted) with cloth ripples
+        pos.z -= (curve + clothEffect);
         
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
@@ -176,7 +159,6 @@ function ImagePlane({
 	material: THREE.ShaderMaterial;
 }) {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const [isHovered, setIsHovered] = useState(false);
 
 	useEffect(() => {
 		if (material && texture) {
@@ -184,20 +166,12 @@ function ImagePlane({
 		}
 	}, [material, texture]);
 
-	useEffect(() => {
-		if (material && material.uniforms) {
-			material.uniforms.isHovered.value = isHovered ? 1.0 : 0.0;
-		}
-	}, [material, isHovered]);
-
 	return (
 		<mesh
 			ref={meshRef}
 			position={position}
 			scale={scale}
 			material={material}
-			onPointerEnter={() => setIsHovered(true)}
-			onPointerLeave={() => setIsHovered(false)}
 		>
 			<planeGeometry args={[1, 1, 32, 32]} />
 		</mesh>
@@ -207,10 +181,10 @@ function ImagePlane({
 function GalleryScene({
 	images,
 	speed = 1,
-	visibleCount = 8,
+	visibleCount = 13,
 	fadeSettings = {
 		fadeIn: { start: 0.05, end: 0.15 },
-		fadeOut: { start: 0.85, end: 0.95 },
+		fadeOut: { start: 0.65, end: 0.75 },
 	},
 	blurSettings = {
 		blurIn: { start: 0.0, end: 0.1 },
@@ -345,7 +319,7 @@ function GalleryScene({
 	useFrame((state, delta) => {
 		// Apply auto-play
 		if (autoPlay) {
-			setScrollVelocity((prev) => prev + 0.3 * delta);
+			setScrollVelocity((prev) => prev + 0.48 * delta);
 		}
 
 		// Damping
