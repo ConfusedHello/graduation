@@ -50,6 +50,8 @@ interface InfiniteGalleryProps {
 	fadeSettings?: FadeSettings;
 	/** Blur in/out settings with ranges based on depth range percentage (default: { blurIn: { start: 0.0, end: 0.1 }, blurOut: { start: 0.9, end: 1.0 }, maxBlur: 3.0 }) */
 	blurSettings?: BlurSettings;
+	/** Global opacity multiplier for all images (0-1, default: 1) */
+	globalOpacity?: number;
 	/** Optional className for outer container */
 	className?: string;
 	/** Optional style for outer container */
@@ -191,6 +193,7 @@ function GalleryScene({
 		blurOut: { start: 0.9, end: 1.0 },
 		maxBlur: 3.0,
 	},
+	globalOpacity = 1,
 }: Omit<InfiniteGalleryProps, 'className' | 'style'>) {
 	const [scrollVelocity, setScrollVelocity] = useState(0);
 	const [autoPlay, setAutoPlay] = useState(true);
@@ -437,7 +440,7 @@ function GalleryScene({
 			// Update material uniforms
 			const material = materials[i];
 			if (material && material.uniforms) {
-				material.uniforms.opacity.value = opacity;
+				material.uniforms.opacity.value = opacity * globalOpacity;
 				material.uniforms.blurAmount.value = blur;
 			}
 		});
@@ -518,6 +521,7 @@ export default function InfiniteGallery({
 		blurOut: { start: 0.4, end: 0.43 },
 		maxBlur: 8.0,
 	},
+	globalOpacity = 1,
 }: InfiniteGalleryProps) {
 	const [webglSupported, setWebglSupported] = useState(true);
 
@@ -553,6 +557,7 @@ export default function InfiniteGallery({
 					images={images}
 					fadeSettings={fadeSettings}
 					blurSettings={blurSettings}
+					globalOpacity={globalOpacity}
 				/>
 			</Canvas>
 		</div>

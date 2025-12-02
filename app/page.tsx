@@ -5,17 +5,49 @@ import InfiniteGallery from '@/components/InfiniteGallery';
 
 type ImageItem = { src: string; alt: string };
 
+function preloadImage(src: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve();
+		img.onerror = reject;
+		img.src = src;
+	});
+}
+
 export default function Home() {
 	const [images, setImages] = useState<ImageItem[]>([]);
+	const [loadedCount, setLoadedCount] = useState(0);
+	const [totalCount, setTotalCount] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
+	const [showGallery, setShowGallery] = useState(false);
+	const [galleryOpacity, setGalleryOpacity] = useState(0);
 
 	useEffect(() => {
-		async function fetchImages() {
+		async function fetchAndPreloadImages() {
 			try {
-				const response = await fetch('/api/images?limit=100');
+				// Fetch image list from API
+				const response = await fetch('/api/images');
 				const data = await response.json();
-				if (data.images) {
-					setImages(data.images);
+
+				if (data.images && data.images.length > 0) {
+					const imageList: ImageItem[] = data.images;
+					setTotalCount(imageList.length);
+
+					// Preload all images
+					let loaded = 0;
+					await Promise.all(
+						imageList.map(async (img) => {
+							try {
+								await preloadImage(img.src);
+							} catch {
+								// Image failed to load, continue anyway
+							}
+							loaded++;
+							setLoadedCount(loaded);
+						})
+					);
+
+					setImages(imageList);
 				}
 			} catch (error) {
 				console.error('Failed to fetch images:', error);
@@ -24,24 +56,45 @@ export default function Home() {
 			}
 		}
 
-		fetchImages();
+		fetchAndPreloadImages();
 	}, []);
 
-	if (isLoading) {
+	// Handle the transition from loading to gallery
+	useEffect(() => {
+		if (!isLoading && images.length > 0) {
+			// Show gallery container immediately (but with 0 opacity on images)
+			setShowGallery(true);
+			// Start fading in the gallery images after a brief delay
+			const fadeTimer = setTimeout(() => {
+				setGalleryOpacity(1);
+			}, 100);
+			return () => clearTimeout(fadeTimer);
+		}
+	}, [isLoading, images.length]);
+
+	// Show loading screen while loading OR during the fade transition
+	const showLoadingScreen = isLoading || loadedCount < totalCount;
+
+	if (showLoadingScreen && !showGallery) {
 		return (
-			<main className="min-h-screen flex items-center justify-center">
+			<main className="min-h-screen flex items-center justify-center bg-black text-white">
 				<div className="text-center">
-					<div className="animate-pulse text-lg">Loading memories...</div>
+					<p className="text-lg mb-2">Loading memories...</p>
+					{totalCount > 0 && (
+						<p className="text-sm opacity-60 font-mono">
+							{loadedCount} / {totalCount}
+						</p>
+					)}
 				</div>
 			</main>
 		);
 	}
 
-	if (images.length === 0) {
+	if (!showGallery && images.length === 0 && !isLoading) {
 		return (
-			<main className="min-h-screen flex items-center justify-center">
+			<main className="min-h-screen flex items-center justify-center bg-black text-white">
 				<div className="text-center">
-					<p className="text-lg">No images found</p>
+					<p className="text-lg">No memories found</p>
 				</div>
 			</main>
 		);
@@ -49,12 +102,29 @@ export default function Home() {
 
 	return (
 		<main className="min-h-screen ">
+			{/* Loading overlay that fades out */}
+			<div
+				className={`fixed inset-0 z-50 flex items-center justify-center bg-black text-white transition-opacity duration-[4000ms] ${
+					galleryOpacity === 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'
+				}`}
+			>
+				<div className="text-center">
+					<p className="text-lg mb-2">Loading memories...</p>
+					{totalCount > 0 && (
+						<p className="text-sm opacity-60 font-mono">
+							{loadedCount} / {totalCount}
+						</p>
+					)}
+				</div>
+			</div>
+
 			<InfiniteGallery
 				images={images}
 				speed={1.2}
 				zSpacing={3}
 				visibleCount={12}
 				falloff={{ near: 0.8, far: 14 }}
+				globalOpacity={galleryOpacity}
 				className="h-screen w-full rounded-lg overflow-hidden"
 			/>
 			<div className="h-screen inset-0 pointer-events-none fixed flex items-center justify-center text-center px-3 mix-blend-exclusion text-white">

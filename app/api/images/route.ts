@@ -10,42 +10,50 @@ const s3Client = new S3Client({
 	},
 });
 
-export async function GET(request: Request) {
-	const { searchParams } = new URL(request.url);
-	const continuationToken = searchParams.get('cursor') || undefined;
-	const maxKeys = parseInt(searchParams.get('limit') || '50', 10);
-
+export async function GET() {
 	try {
-		const command = new ListObjectsV2Command({
-			Bucket: process.env.R2_BUCKET_NAME,
-			MaxKeys: maxKeys,
-			ContinuationToken: continuationToken,
-		});
+		const allImages: {
+			src: string;
+			alt: string;
+			key: string;
+			size?: number;
+		}[] = [];
+		let continuationToken: string | undefined;
 
-		const response = await s3Client.send(command);
+		// Fetch all objects (handles pagination automatically)
+		do {
+			const command = new ListObjectsV2Command({
+				Bucket: process.env.R2_BUCKET_NAME,
+				MaxKeys: 1000,
+				ContinuationToken: continuationToken,
+			});
 
-		const images =
-			response.Contents?.filter((obj) => {
-				const key = obj.Key?.toLowerCase() || '';
-				return (
-					key.endsWith('.jpg') ||
-					key.endsWith('.jpeg') ||
-					key.endsWith('.png') ||
-					key.endsWith('.webp') ||
-					key.endsWith('.gif')
-				);
-			}).map((obj) => ({
-				src: `${process.env.R2_PUBLIC_URL}/${obj.Key}`,
-				alt: obj.Key || '',
-				key: obj.Key,
-				size: obj.Size,
-				lastModified: obj.LastModified?.toISOString(),
-			})) || [];
+			const response = await s3Client.send(command);
+
+			const images =
+				response.Contents?.filter((obj) => {
+					const key = obj.Key?.toLowerCase() || '';
+					return (
+						key.endsWith('.jpg') ||
+						key.endsWith('.jpeg') ||
+						key.endsWith('.png') ||
+						key.endsWith('.webp') ||
+						key.endsWith('.gif')
+					);
+				}).map((obj) => ({
+					src: `${process.env.R2_PUBLIC_URL}/${obj.Key}`,
+					alt: obj.Key || '',
+					key: obj.Key!,
+					size: obj.Size,
+				})) || [];
+
+			allImages.push(...images);
+			continuationToken = response.NextContinuationToken;
+		} while (continuationToken);
 
 		return NextResponse.json({
-			images,
-			nextCursor: response.NextContinuationToken || null,
-			isTruncated: response.IsTruncated || false,
+			images: allImages,
+			total: allImages.length,
 		});
 	} catch (error) {
 		console.error('Error listing R2 objects:', error);
