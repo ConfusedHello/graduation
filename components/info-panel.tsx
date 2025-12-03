@@ -35,8 +35,6 @@ export function InfoPanel({ open, onClose, imageCount = 0 }: InfoPanelProps) {
             <h3 className="font-serif text-3xl italic text-foreground-bright">Class of 2026</h3>
           </div>
 
-          <div className="border-t border-border" />
-
           {/* Description */}
           <p className="text-[12px] leading-relaxed text-foreground">
             A collaborative photo bank celebrating our journey together. Upload your favorite memories from our time as
@@ -63,7 +61,7 @@ export function InfoPanel({ open, onClose, imageCount = 0 }: InfoPanelProps) {
 
           {/* Instructions */}
           <div className="space-y-4">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-foreground-muted">Navigation</h4>
+            <h4 className="text-[10px] uppercase tracking-[0.2em] text-foreground-muted">Navigation (Desktop only)</h4>
             <div className="space-y-2 text-[11px]">
               <p className="text-foreground">
                 <span className="text-foreground-muted">Scroll</span> — Navigate through memories
