@@ -85,7 +85,7 @@
   --color-border: var(--border);
   --font-sans: "JetBrains Mono", monospace;
   --font-mono: "JetBrains Mono", monospace;
-  --font-serif: "JetBrains Mono", monospace;
+  --font-serif: Georgia, "Times New Roman", serif;
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
