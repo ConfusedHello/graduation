@@ -5,9 +5,10 @@ import { X } from "lucide-react"
 interface InfoPanelProps {
   open: boolean
   onClose: () => void
+  imageCount?: number
 }
 
-export function InfoPanel({ open, onClose }: InfoPanelProps) {
+export function InfoPanel({ open, onClose, imageCount = 0 }: InfoPanelProps) {
   if (!open) return null
 
   return (
@@ -47,11 +48,11 @@ export function InfoPanel({ open, onClose }: InfoPanelProps) {
             </div>
             <div className="flex justify-between text-[11px] uppercase tracking-wider">
               <span className="text-foreground-muted">Memories</span>
-              <span className="text-foreground-bright">128</span>
+              <span className="text-foreground-bright">{imageCount}</span>
             </div>
             <div className="flex justify-between text-[11px] uppercase tracking-wider">
               <span className="text-foreground-muted">Since</span>
-              <span className="text-foreground-bright">Idk</span>
+              <span className="text-foreground-bright">dec 2025</span>
             </div>
           </div>
 

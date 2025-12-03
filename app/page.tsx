@@ -186,7 +186,7 @@ export default function Home() {
       <UploadDialog open={uploadOpen} onClose={() => setUploadOpen(false)} />
 
       {/* Info panel */}
-      <InfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} />
+      <InfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} imageCount={images.length} />
     </main>
   )
 }
