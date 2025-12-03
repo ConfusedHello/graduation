@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import InfiniteGallery from "@/components/InfiniteGallery"
 import { BottomNav } from "@/components/bottom-nav"
 import { UploadDialog } from "@/components/upload-dialog"
@@ -10,7 +11,7 @@ type ImageItem = { src: string; alt: string; author?: string }
 
 function preloadImage(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const img = new Image()
+    const img = document.createElement('img')
     img.onload = () => resolve()
     img.onerror = reject
     img.src = src
@@ -27,6 +28,7 @@ export default function Home() {
 
   const [uploadOpen, setUploadOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [isGridView, setIsGridView] = useState(false)
 
   useEffect(() => {
 		async function fetchAndPreloadImages() {
@@ -121,29 +123,59 @@ export default function Home() {
         </div>
       </div>
 
-      <InfiniteGallery
-        images={images}
-        speed={1.2}
-        zSpacing={3}
-        visibleCount={12}
-        falloff={{ near: 0.8, far: 14 }}
-        globalOpacity={galleryOpacity}
-        className="h-screen w-full overflow-hidden"
-      />
+      {!isGridView ? (
+        <>
+          <InfiniteGallery
+            images={images}
+            speed={1.2}
+            zSpacing={3}
+            visibleCount={12}
+            falloff={{ near: 0.8, far: 14 }}
+            globalOpacity={galleryOpacity}
+            className="h-screen w-full overflow-hidden"
+          />
+
+          {/* Navigation instructions */}
+          <div className="text-center fixed bottom-24 left-0 right-0 font-mono uppercase text-[10px] text-foreground-muted pointer-events-none">
+            <p>Use mouse wheel, arrow keys, or touch to navigate</p>
+            <p className="opacity-60">Auto-play resumes after 3 seconds of inactivity</p>
+          </div>
+        </>
+      ) : (
+        <div className="h-screen w-full overflow-y-auto p-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-32">
+            {images.map((img, index) => {
+              const imgSrc = img.src;
+              const imgAlt = img.alt || `Memory ${index + 1}`;
+              return (
+                <div key={index} className="relative aspect-square overflow-hidden border border-border hover:border-foreground-muted transition-colors">
+                  <Image
+                    src={imgSrc}
+                    alt={imgAlt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                    unoptimized
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Photo count indicator */}
-      <div className="fixed top-6 right-6 text-[10px] uppercase tracking-wider text-foreground-muted">
+      <div className="fixed top-6 right-6 text-[10px] uppercase tracking-wider text-foreground-muted bg-background/80 backdrop-blur-sm px-3 py-2 border border-border">
         <span className="text-foreground">{images.length}</span> memories
       </div>
 
-      {/* Navigation instructions */}
-      <div className="text-center fixed bottom-24 left-0 right-0 font-mono uppercase text-[10px] text-foreground-muted pointer-events-none">
-        <p>Use mouse wheel, arrow keys, or touch to navigate</p>
-        <p className="opacity-60">Auto-play resumes after 3 seconds of inactivity</p>
-      </div>
-
       {/* Bottom navigation */}
-      <BottomNav onUploadClick={() => setUploadOpen(true)} onInfoClick={() => setInfoOpen(true)} />
+      <BottomNav
+        onUploadClick={() => setUploadOpen(true)}
+        onInfoClick={() => setInfoOpen(true)}
+        onGridClick={() => setIsGridView(!isGridView)}
+        isGridView={isGridView}
+      />
 
       {/* Upload dialog */}
       <UploadDialog open={uploadOpen} onClose={() => setUploadOpen(false)} />
