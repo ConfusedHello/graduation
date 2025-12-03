@@ -169,6 +169,11 @@ export default function Home() {
         <span className="text-foreground">{images.length}</span> memories
       </div>
 
+      {/* Title */}
+      <div className="fixed top-6 left-6 text-[10px] uppercase tracking-wider text-foreground-muted bg-background/80 backdrop-blur-sm px-3 py-2 border border-border">
+        <span className="text-foreground">class of 2026</span>
+      </div>
+
       {/* Bottom navigation */}
       <BottomNav
         onUploadClick={() => setUploadOpen(true)}

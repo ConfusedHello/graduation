@@ -73,13 +73,6 @@ export function InfoPanel({ open, onClose }: InfoPanelProps) {
               </p>
             </div>
           </div>
-
-          {/* Credits */}
-          <div className="pt-8 border-t border-border">
-            <p className="text-[10px] uppercase tracking-wider text-foreground-muted">
-              Built with love for the Class of 2026
-            </p>
-          </div>
         </div>
       </div>
     </div>
