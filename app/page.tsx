@@ -134,12 +134,6 @@ export default function Home() {
             globalOpacity={galleryOpacity}
             className="h-screen w-full overflow-hidden"
           />
-
-          {/* Navigation instructions */}
-          <div className="text-center fixed bottom-24 left-0 right-0 font-mono uppercase text-[10px] text-foreground-muted pointer-events-none">
-            <p>Use mouse wheel, arrow keys, or touch to navigate</p>
-            <p className="opacity-60">Auto-play resumes after 3 seconds of inactivity</p>
-          </div>
         </>
       ) : (
         <div className="h-screen w-full overflow-y-auto p-8">
